@@ -1,0 +1,29 @@
+{
+  "development": {
+    "username": "desafio",
+    "password": "desafio",
+    "database": "desafio",
+    "host": "127.0.0.1",
+    "port": 3306,
+    "dialect": "mysql",
+    "logging": false
+  },
+  "test": {
+    "username": "desafio",
+    "password": "desafio",
+    "database": "desafio_test",
+    "host": "127.0.0.1",
+    "port": 3306,
+    "dialect": "mysql",
+    "logging": false
+  },
+  "production": {
+    "username": "desafio",
+    "password": "desafio",
+    "database": "desafio",
+    "host": "127.0.0.1",
+    "port": 3306,
+    "dialect": "mysql",
+    "logging": false
+  }
+}
