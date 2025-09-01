@@ -23,8 +23,6 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: "CUSTOMER",
       },
-
-      // Address fields embedded in Users
       postalCode: { type: DataTypes.STRING, allowNull: true },     // CEP
       street: { type: DataTypes.STRING, allowNull: true },         // Logradouro
       addressLine2: { type: DataTypes.STRING, allowNull: true },   // Complemento
