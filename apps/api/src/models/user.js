@@ -23,9 +23,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: "CUSTOMER",
       },
-      postalCode: { type: DataTypes.STRING, allowNull: true },     // CEP
+      postal_code: { type: DataTypes.STRING, allowNull: true },     // CEP
       street: { type: DataTypes.STRING, allowNull: true },         // Logradouro
-      addressLine2: { type: DataTypes.STRING, allowNull: true },   // Complemento
+      address_number: { type: DataTypes.STRING, allowNull: true },   // Número
+      address_line2: { type: DataTypes.STRING, allowNull: true },   // Complemento
       neighborhood: { type: DataTypes.STRING, allowNull: true },   // Bairro
       city: { type: DataTypes.STRING, allowNull: true },           // Localidade
       state: { type: DataTypes.STRING, allowNull: true },          // Estado

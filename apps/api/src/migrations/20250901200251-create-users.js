@@ -11,12 +11,13 @@ module.exports = {
         allowNull: false,
         defaultValue: "CUSTOMER",
       },
-      postalCode: { type: Sequelize.STRING, allowNull: false, },
+      postal_code: { type: Sequelize.STRING, allowNull: false, },
+      address_number: { type: Sequelize.STRING, allowNull: false, },
       street: { type: Sequelize.STRING, allowNull: false },
       neighborhood: { type: Sequelize.STRING, allowNull: false },
       city: { type: Sequelize.STRING, allowNull: false },
       state: { type: Sequelize.STRING, allowNull: false },
-      addressLine2: { type: Sequelize.STRING, allowNull: true },
+      address_line2: { type: Sequelize.STRING, allowNull: true },
       region: { type: Sequelize.STRING, allowNull: true },
 
       createdAt: {
