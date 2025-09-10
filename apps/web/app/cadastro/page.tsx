@@ -1,5 +1,7 @@
 'use client';
-import { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import 'typeface-montserrat';
+
 
 function Header() {
   return (
@@ -68,6 +70,12 @@ export default function CadastroPage() {
 
   const [loadingCep, setLoadingCep] = useState(false);
 
+  // >>> ADIÇÕES <<<
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  // <<< ADIÇÕES <<<
+
   const requiredOk = useMemo(() => {
     const emailOk = /.+@.+\..+/.test(email.trim());
     const pwdOk = password.trim().length >= 6;
@@ -80,6 +88,49 @@ export default function CadastroPage() {
       cepOk
     );
   }, [firstName, lastName, email, password, cep]);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!requiredOk || submitting) return;
+    setSubmitting(true);
+    setErrorMsg(null);
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL;
+    const payload = {
+      name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+      email: email.trim().toLowerCase(),
+      password,      
+      postal_code: cep.replace(/\D/g,''),
+      street,
+      address_number: number,
+      address_line2: complement,
+      neighborhood:district,
+      city,
+      state: stateUf
+    };
+
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        console.log(data)
+        throw new Error(data?.error || 'Falha ao registrar');
+      }
+
+      setSuccess(true);
+      // opcional: redirecionar após 1.5s
+      // setTimeout(() => { window.location.href = '/login'; }, 1500);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'Erro inesperado');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   // Busca ViaCEP ao completar 8 dígitos
   useEffect(() => {
@@ -152,9 +203,11 @@ export default function CadastroPage() {
             borderRadius: 12,
             padding: 16,
             boxShadow: '0 1px 2px rgba(0,0,0,0.04)',
+            fontFamily: 'Montserrat'
           }}
         >
-          <form onSubmit={(e) => e.preventDefault()} style={{ display: 'grid', gap: 10 }}>
+          {/* trocado para handleSubmit */}
+          <form onSubmit={handleSubmit} style={{ display: 'grid', gap: 10 }}>
             {/* Nome e sobrenome */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <label style={{ display: 'grid', gap: 6 }}>
@@ -423,21 +476,31 @@ export default function CadastroPage() {
               </label>
             </div>
 
+            {/* mensagens de erro/sucesso */}
+            {errorMsg && (
+              <div style={{ fontSize: 12, color: '#b91c1c' }}>{errorMsg}</div>
+            )}
+            {success && (
+              <div style={{ fontSize: 12, color: '#065f46' }}>
+                Conta criada! Você já pode fazer login.
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={!requiredOk}
+              disabled={!requiredOk || submitting}
               style={{
                 marginTop: 8,
                 padding: '12px 12px',
                 borderRadius: 8,
                 border: 'none',
-                background: requiredOk ? '#111827' : '#d1d5db',
-                color: requiredOk ? '#fff' : '#6b7280',
+                background: (!requiredOk || submitting) ? '#d1d5db' : '#111827',
+                color: (!requiredOk || submitting) ? '#6b7280' : '#fff',
                 fontWeight: 700,
-                cursor: requiredOk ? 'pointer' : 'not-allowed',
+                cursor: (!requiredOk || submitting) ? 'not-allowed' : 'pointer',
               }}
             >
-              Cadastrar-se
+              {submitting ? 'Cadastrando…' : 'Cadastrar-se'}
             </button>
           </form>
         </div>
@@ -445,5 +508,3 @@ export default function CadastroPage() {
     </main>
   );
 }
-
-
