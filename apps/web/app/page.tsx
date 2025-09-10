@@ -103,7 +103,15 @@ export default function LoginPage() {
 
       setSuccess(true);
 
-      router.replace(next); // ou router.push(next)
+      // router.replace(next); // ou router.push(next)
+      // depois de salvar cookie/token (seu backend define o cookie httpOnly)
+const m = document.cookie.match(/(?:^|; )redirectTo=([^;]+)/);
+const redirectTo = m ? decodeURIComponent(m[1]) : '/agendamentos';
+// limpa
+document.cookie = 'redirectTo=; Path=/; Max-Age=0; SameSite=Lax';
+// navega
+router.replace(redirectTo);
+
     } catch (err: any) {
       setErrorMsg(err?.message || 'Erro inesperado');
     } finally {
