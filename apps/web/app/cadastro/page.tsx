@@ -57,7 +57,7 @@ function Header() {
 export default function CadastroPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const next = searchParams.get('redirect') || '/A';
+  const next = searchParams.get('redirect') || '/';
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
