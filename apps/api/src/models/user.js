@@ -32,7 +32,7 @@ module.exports = (sequelize, DataTypes) => {
       region: { type: DataTypes.STRING, allowNull: true },         // Região
     },
     {
-      tableName: "Users",
+      tableName: "users",
       timestamps: true,
     }
   );
