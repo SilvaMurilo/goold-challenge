@@ -1,6 +1,5 @@
 'use client';
 import { useState } from 'react';
-// topo do arquivo
 import { useRouter, useSearchParams } from 'next/navigation';
 
 
@@ -104,7 +103,7 @@ export default function LoginPage() {
 
       setSuccess(true);
 
-      router.replace("agendamentos"); // ou router.push(next)
+      router.replace(next); // ou router.push(next)
     } catch (err: any) {
       setErrorMsg(err?.message || 'Erro inesperado');
     } finally {

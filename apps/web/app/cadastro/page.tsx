@@ -1,4 +1,5 @@
 'use client';
+import { useRouter, useSearchParams } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 import 'typeface-montserrat';
 
@@ -54,6 +55,9 @@ function Header() {
 }
 
 export default function CadastroPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const next = searchParams.get('redirect') || '/A';
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -123,8 +127,7 @@ export default function CadastroPage() {
       }
 
       setSuccess(true);
-      // opcional: redirecionar após 1.5s
-      // setTimeout(() => { window.location.href = '/login'; }, 1500);
+      router.replace(next); // ou router.push(next)
     } catch (err: any) {
       setErrorMsg(err?.message || 'Erro inesperado');
     } finally {
