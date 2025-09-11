@@ -9,7 +9,7 @@ export async function getSession() {
   const t = setTimeout(() => ctrl.abort(), 4000);
 
   try {
-    const res = await fetch(`${API}/me`, {
+    const res = await fetch(`${API}/users`, {
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',
       signal: ctrl.signal,

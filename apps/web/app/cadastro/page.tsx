@@ -101,7 +101,8 @@ export default function CadastroPage() {
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL;
     const payload = {
-      name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+      name: firstName.trim(),
+      last_name: lastName.trim(),
       email: email.trim().toLowerCase(),
       password,      
       postal_code: cep.replace(/\D/g,''),
