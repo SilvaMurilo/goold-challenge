@@ -8,7 +8,8 @@ module.exports = {
 
     await queryInterface.bulkInsert('users', [
       {
-        name: 'Silva Murilo',
+        name: 'Silva',
+        last_name: 'Murilo',
         email: 'silva@teste.com',
         password_hash: password_hash,
         postal_code: '12345678',
@@ -23,7 +24,8 @@ module.exports = {
         updated_at: now,
       },
       {
-        name: 'Murilo Silva',
+        name: 'Murilo',
+        last_name: 'Silva',
         email: 'murilo@teste.com',
         password_hash: password_hash,
         postal_code: '12345678',

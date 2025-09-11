@@ -8,6 +8,7 @@ module.exports = {
     await queryInterface.bulkInsert("users", [
       {
         name: "Admin",
+        last_name: "Soberano",
         email: "admin@teste.com",
         password_hash,
         role: "ADMIN",

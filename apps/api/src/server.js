@@ -6,7 +6,7 @@ const cookieParser = require('cookie-parser');
 
 
 const authRoutes = require('./routes/auth');
-const meRoutes = require('./routes/me');
+const users = require('./routes/users');
 const bookings = require('./routes/bookings');
 const roomsRoutes = require('./routes/rooms');
 
@@ -18,7 +18,7 @@ app.use(cors({ origin: true, credentials: true }));
 
 app.get('/health', (_, res) => res.json({ ok: true }));
 app.use('/auth', authRoutes);
-app.use('/me', meRoutes);
+app.use('/users', users);
 app.use('/bookings', bookings);
 app.use('/rooms', roomsRoutes);
 

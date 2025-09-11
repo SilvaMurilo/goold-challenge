@@ -8,6 +8,7 @@ router.post('/register', async (req, res) => {
   try {
     const {
       name,
+      last_name,
       email,
       password,
       // campos de endereço (conforme sua migration "users")
@@ -23,6 +24,7 @@ router.post('/register', async (req, res) => {
 
     // validações mínimas (evite deixar null/undefined em colunas NOT NULL)
     if (!name?.trim())      return res.status(422).json({ error: 'Nome é obrigatório' });
+    if (!last_name?.trim())      return res.status(422).json({ error: 'Sobrenome é obrigatório' });
     if (!email?.trim())     return res.status(422).json({ error: 'E-mail é obrigatório' });
     if (!password?.trim())  return res.status(422).json({ error: 'Senha é obrigatória' });
 
@@ -43,6 +45,7 @@ router.post('/register', async (req, res) => {
 
     const user = await User.create({
       name,
+      last_name,
       email: normalizedEmail,
       password_hash,
       role: 'CUSTOMER', // default também está na migration, mas deixei explícito
@@ -92,7 +95,7 @@ router.post('/login', async (req, res) => {
     path: '/',
     maxAge: 60 * 60 * 1000,
   });
-  return res.json({ ok: true});
+  return res.json({ ok: true, token });
 });
 
 router.post('/logout', (req, res) => {
