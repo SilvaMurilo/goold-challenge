@@ -1,9 +1,26 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { api } from '../../lib/api';
 
-/** ---------- Helpers de UI ---------- */
-const Badge = ({ tone = 'neutral', children }) => {
-  const styles = {
+const ptBRdatetime = (iso: string) => {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
+  const dd = String(d.getDate()).padStart(2, '0');
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2, '0');
+  const mi = String(d.getMinutes()).padStart(2, '0');
+  return `${dd}/${mm}/${yyyy} às ${hh}:${mi}`;
+};
+
+const apiStatusToBadge = (s: string) =>
+  s === 'CONFIRMED' ? 'success' :
+  s === 'CANCELLED' ? 'danger'  :
+  s === 'REJECTED'  ? 'danger'  :
+  'pending';
+
+const Badge = ({ tone = 'neutral', children }: any) => {
+  const styles: any = {
     base: {
       display: 'inline-block',
       padding: '4px 10px',
@@ -22,11 +39,7 @@ const Badge = ({ tone = 'neutral', children }) => {
     },
   };
   const toneStyle = styles.tones[tone] || styles.tones.neutral;
-  return (
-    <span style={{ ...styles.base, ...toneStyle, color: toneStyle.text ?? toneStyle.color }}>
-      {children}
-    </span>
-  );
+  return <span style={{ ...styles.base, ...toneStyle, color: toneStyle.text ?? toneStyle.color }}>{children}</span>;
 };
 
 const Icon = {
@@ -50,127 +63,219 @@ const Icon = {
       <circle cx="6" cy="6" r="5" fill={active ? '#111827' : '#d1d5db'} />
     </svg>
   ),
-  logo: (
-    <div
-      aria-label="Logo"
-      style={{
-        width: 24, height: 24, background: '#111827',
-        clipPath: 'polygon(50% 0, 80% 20%, 50% 40%, 80% 60%, 50% 80%, 20% 60%, 50% 40%, 20% 20%)'
-      }}
-    />
-  ),
 };
 
-/** ---------- Modal Novo Agendamento (UI-only) ---------- */
-function ModalNovo({ open, onClose }) {
-  const [date, setDate] = useState('');
-  const [time, setTime] = useState('');
-  const [room, setRoom] = useState('');
-  const canConfirm = date && time && room;
+function ModalNovo({ open, onClose, onCreated }: { open: boolean; onClose: () => void; onCreated: () => void; }) {
+  const [date, setDate] = useState(''); // yyyy-mm-dd
+  const [time, setTime] = useState(''); // HH:mm
+  const [room, setRoom] = useState(''); // room_id
+  const [submitting, setSubmitting] = useState(false);
+  const [rooms, setRooms] = useState<{id:number; name:string}[]>([]);
+  const canConfirm = date && time && room && !submitting;
+
+  useEffect(() => {
+    if (!open) return;
+    // tenta buscar salas (se não existir endpoint, caímos no fallback)
+    (async () => {
+
+        const res = await api('/rooms', { method: 'GET' });
+        if (res.ok) {
+          const data = await res.json();
+          setRooms(Array.isArray(data) ? data : data?.data || []);
+        } 
+    })();
+  }, [open]);
+
+  async function handleCreate() {
+    if (!canConfirm) return;
+    setSubmitting(true);
+    try {
+      // monta start/end simplificados (1h de duração)
+      const startISO = new Date(`${date}T${time}:00`).toISOString();
+      const endDate = new Date(startISO);
+      endDate.setHours(endDate.getHours() + 1);
+
+      const res = await api('/bookings', {
+        method: 'POST',
+        body: JSON.stringify({
+          room_id: Number(room),
+          start_at: startISO,
+          end_at: endDate.toISOString(),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(()=>({}));
+        throw new Error(err?.error || 'Falha ao criar agendamento');
+      }
+      onClose();
+      onCreated();
+    } catch (e:any) {
+      alert(e.message || 'Erro ao criar agendamento');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   if (!open) return null;
   return (
-    <div style={{
-      position:'fixed', inset:0, background:'rgba(17,24,39,0.5)',
-      display:'grid', placeItems:'center', zIndex:50
-    }}>
-      <div style={{
-        width:'100%', maxWidth:420, background:'#fff', border:'1px solid #e5e7eb',
-        borderRadius:12, boxShadow:'0 10px 30px rgba(0,0,0,0.2)', padding:16, position:'relative'
-      }}>
+    <div style={{ position:'fixed', inset:0, background:'rgba(17,24,39,0.5)', display:'grid', placeItems:'center', zIndex:50 }}>
+      <div style={{ width:'100%', maxWidth:420, background:'#fff', border:'1px solid #e5e7eb', borderRadius:12, boxShadow:'0 10px 30px rgba(0,0,0,0.2)', padding:16, position:'relative' }}>
         <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
           <h3 style={{ margin:0, fontSize:16, fontWeight:700, color:'#111827' }}>Novo Agendamento</h3>
-          <button onClick={onClose} aria-label="Fechar" style={{
-            border:'none', background:'transparent', cursor:'pointer', padding:6, borderRadius:8
-          }}>{Icon.close}</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ border:'none', background:'transparent', cursor:'pointer', padding:6, borderRadius:8 }}>{Icon.close}</button>
         </div>
 
         <div style={{ display:'grid', gap:10 }}>
           <label style={{ display:'grid', gap:6 }}>
             <span style={{ fontSize:12, color:'#374151' }}>Selecione uma <b>data</b> <span style={{ color:'#6b7280' }}>(Obrigatório)</span></span>
             <div style={{ position:'relative' }}>
-              <input type="date" value={date} onChange={e=>setDate(e.target.value)}
-                     style={{ width:'100%', padding:'10px 36px 10px 12px', border:'1px solid #d1d5db', borderRadius:8 }}/>
+              <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{ width:'100%', padding:'10px 36px 10px 12px', border:'1px solid #d1d5db', borderRadius:8 }}/>
               <div style={{ position:'absolute', right:8, top:'50%', transform:'translateY(-50%)' }}>{Icon.calendar}</div>
             </div>
           </label>
 
           <label style={{ display:'grid', gap:6 }}>
             <span style={{ fontSize:12, color:'#374151' }}>Selecione um <b>horário</b> <span style={{ color:'#6b7280' }}>(Obrigatório)</span></span>
-            <input type="time" value={time} onChange={e=>setTime(e.target.value)}
-                   style={{ width:'100%', padding:'10px 12px', border:'1px solid #d1d5db', borderRadius:8 }}/>
+            <input type="time" value={time} onChange={e=>setTime(e.target.value)} style={{ width:'100%', padding:'10px 12px', border:'1px solid #d1d5db', borderRadius:8 }}/>
           </label>
 
           <label style={{ display:'grid', gap:6 }}>
             <span style={{ fontSize:12, color:'#374151' }}>Selecione uma <b>Sala</b> <span style={{ color:'#6b7280' }}>(Obrigatório)</span></span>
-            <select value={room} onChange={e=>setRoom(e.target.value)}
-                    style={{ width:'100%', padding:'10px 12px', border:'1px solid #d1d5db', borderRadius:8, background:'#fff' }}>
-              <option value="">Selecione um Sala</option>
-              <option>Sala 01</option>
-              <option>Sala 02</option>
-              <option>Sala 03</option>
+            <select value={room} onChange={e=>setRoom(e.target.value)} style={{ width:'100%', padding:'10px 12px', border:'1px solid #d1d5db', borderRadius:8, background:'#fff' }}>
+              <option value="">Selecione uma Sala</option>
+              {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
             </select>
           </label>
         </div>
 
-        <button disabled={!canConfirm} onClick={onClose} style={{
+        <button disabled={!canConfirm} onClick={handleCreate} style={{
           marginTop:16, width:'100%', padding:'12px', borderRadius:8, border:'none',
           background: canConfirm ? '#111827' : '#d1d5db',
           color: canConfirm ? '#fff' : '#6b7280', fontWeight:700, cursor: canConfirm?'pointer':'not-allowed'
         }}>
-          Confirmar Agendamento
+          {submitting ? 'Salvando…' : 'Confirmar Agendamento'}
         </button>
       </div>
     </div>
   );
 }
 
-/** ---------- Página ---------- */
 export default function AgendamentosPage() {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const [room, setRoom] = useState('');
+  const [rooms, setRooms] = useState<{id:number; name:string}[]>([]);
   const [date, setDate] = useState('');
-  const [hasData, setHasData] = useState(true); // troque para false para ver o estado "vazio"
+  const [loading, setLoading] = useState(true);
+  const [rowsAPI, setRowsAPI] = useState<any[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
-  // dados de exemplo apenas para UI
-  const rows = useMemo(() => (hasData ? [
-    { id: 1, at: '22/01/2025 às 16:00', nome: 'Camila Mendes', subt: 'Cliente', sala: 'Sala 012', status: 'Em análise' },
-    { id: 2, at: '21/01/2025 às 16:00', nome: 'Camila Mendes', subt: 'Cliente', sala: 'Sala 012', status: 'Em análise' },
-    { id: 3, at: '20/01/2025 às 16:00', nome: 'Camila Mendes', subt: 'Cliente', sala: 'Sala 012', status: 'Agendado' },
-    { id: 4, at: '19/01/2025 às 16:00', nome: 'Camila Mendes', subt: 'Cliente', sala: 'Sala 012', status: 'Agendado' },
-    { id: 5, at: '19/01/2025 às 16:00', nome: 'Camila Mendes', subt: 'Cliente', sala: 'Sala 012', status: 'Cancelado' },
-    { id: 6, at: '18/01/2025 às 16:00', nome: 'Camila Mendes', subt: 'Cliente', sala: 'Sala 012', status: 'Cancelado' },
-    { id: 7, at: '18/01/2025 às 16:00', nome: 'Camila Mendes', subt: 'Cliente', sala: 'Sala 012', status: 'Agendado' },
-    { id: 8, at: '12/01/2025 às 16:00', nome: 'Camila Mendes', subt: 'Cliente', sala: 'Sala 012', status: 'Agendado' },
-  ] : []), [hasData]);
 
-  const filt = rows.filter(r =>
+  useEffect(() => {
+    if (!open) return;
+    // tenta buscar salas (se não existir endpoint, caímos no fallback)
+    (async () => {
+
+        const res = await api('/rooms', { method: 'GET' });
+        if (res.ok) {
+          const data = await res.json();
+          setRooms(Array.isArray(data) ? data : data?.data || []);
+        } 
+    })();
+  }, [open]);
+
+  async function fetchBookings() {
+    try {
+      setLoading(true);
+      setError(null);
+      const res = await api(`/bookings`);
+      if (!res.ok) {
+        let msg = `Falha ao listar agendamentos (HTTP ${res.status})`;
+      try {
+        const data = await res.json();
+        if (data?.error) msg = data.error + ` (HTTP ${res.status})`;
+      } catch {}
+      throw new Error(msg);
+      }
+      const data = await res.json();
+      const list: any[] = Array.isArray(data) ? data : data?.data || [];
+
+      const normalized = list.map((b: any) => ({
+        id: b.id,
+        at: ptBRdatetime(b.start_at),
+        nome: b.user?.name || 'Você',
+        subt: b.user ? (b.user.email || 'Cliente') : 'Cliente',
+        sala: b.room?.name || `Sala ${b.room_id}`,
+        roomId: b.room_id,                // <--- adicione isso
+        status: b.status === 'PENDING' ? 'Em análise'
+              : b.status === 'CONFIRMED' ? 'Agendado'
+              : b.status === 'REJECTED'  ? 'Recusado'
+              : b.status === 'CANCELLED' ? 'Cancelado'
+              : b.status,
+        _rawStatus: b.status,
+      }));
+      
+      setRowsAPI(normalized);
+    } catch (e:any) {
+      setError(e.message || 'Erro ao buscar dados');
+      setRowsAPI([]);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    fetchBookings();
+  }, []);
+
+  const filt = useMemo(() => {
+  const base = rowsAPI;
+  return base.filter((r) =>
     (!q || r.nome.toLowerCase().includes(q.toLowerCase())) &&
-    (!room || r.sala === room) &&
+    (!room || r.roomId === Number(room)) &&             // <--- use roomId
     (!date || r.at.startsWith(date.split('-').reverse().join('/')))
   );
+}, [rowsAPI, q, room, date]);
 
-  const statusTone = (s) =>
-    s === 'Agendado' ? 'success' :
-    s === 'Cancelado' ? 'danger' :
-    'pending';
 
+  const statusTone = (s: string) => apiStatusToBadge(
+    s === 'Agendado' ? 'CONFIRMED'
+      : s === 'Cancelado' ? 'CANCELLED'
+      : s === 'Recusado' ? 'REJECTED'
+      : 'PENDING'
+  );
+
+  async function handleCancel(id: number) {
+    if (!confirm('Deseja cancelar este agendamento?')) return;
+    try {
+      const res = await api(`/bookings/${id}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const data = await res.json().catch(()=>({}));
+        throw new Error(data?.error || 'Falha ao cancelar');
+      }
+      await fetchBookings();
+    } catch (e:any) {
+      alert(e.message || 'Erro ao cancelar');
+    }
+  }
+  async function fetchRooms() {
+    const res = await api('/rooms', { method: 'GET' });
+    if (res.ok) {
+      const data = await res.json();
+      setRooms(Array.isArray(data) ? data : data?.data || []);
+    }
+  }
+  
+  useEffect(() => { fetchRooms(); }, []);  
   return (
     <>
       <section style={{ padding:'0' }}>
-        {/* Header */}
         <header style={{ borderBottom:'1px solid #e5e7eb', paddingBottom:16, marginBottom:16 }}>
           <h1 style={{ margin:'0 0 4px', fontSize:22, fontWeight:800, color:'#111827' }}>Agendamento</h1>
           <p style={{ margin:0, fontSize:13, color:'#6b7280' }}>Acompanhe todos os seus agendamentos de forma simples</p>
         </header>
 
-        {/* Filtro + CTA */}
-        <div style={{
-          display:'grid', gridTemplateColumns:'1fr 180px 160px 180px',
-          gap:12, alignItems:'center', marginBottom:16
-        }}>
-          {/* busca */}
+        <div style={{ display:'grid', gridTemplateColumns:'1fr 180px 160px 180px', gap:12, alignItems:'center', marginBottom:16 }}>
           <div style={{ position:'relative' }}>
             <input
               placeholder="Filtre por nome do paciente, CPF/CNPJ ou E-mail"
@@ -179,50 +284,35 @@ export default function AgendamentosPage() {
             />
             <div style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)' }}>{Icon.search}</div>
           </div>
-          {/* sala */}
-          <select value={room} onChange={e=>setRoom(e.target.value)}
-                  style={{ width:'100%', padding:'10px 12px', border:'1px solid #e5e7eb', borderRadius:8, background:'#fff' }}>
-            <option value="">Selecione</option>
-            <option>Sala 012</option>
-            <option>Sala 021</option>
+          
+          <select value={room} onChange={e=>setRoom(e.target.value)} style={{ width:'100%', padding:'10px 12px', border:'1px solid #e5e7eb', borderRadius:8, background:'#fff' }}>
+            <option value="">Selecione uma Sala</option>
+            {rooms.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
           </select>
-          {/* data */}
           <div style={{ position:'relative' }}>
-            <input type="date" value={date} onChange={e=>setDate(e.target.value)}
-                   style={{ width:'100%', padding:'10px 36px 10px 12px', border:'1px solid #e5e7eb', borderRadius:8, background:'#fff' }}/>
+            <input type="date" value={date} onChange={e=>setDate(e.target.value)} style={{ width:'100%', padding:'10px 36px 10px 12px', border:'1px solid #e5e7eb', borderRadius:8, background:'#fff' }}/>
             <div style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)' }}>{Icon.calendar}</div>
           </div>
-          {/* CTA */}
           <div style={{ textAlign:'right' }}>
-            <button onClick={()=>setOpen(true)} style={{
-              width:'100%', padding:'10px 12px', borderRadius:8, border:'none',
-              background:'#111827', color:'#fff', fontWeight:700, cursor:'pointer'
-            }}>
+            <button onClick={()=>setOpen(true)} style={{ width:'100%', padding:'10px 12px', borderRadius:8, border:'none', background:'#111827', color:'#fff', fontWeight:700, cursor:'pointer' }}>
               Novo Agendamento
             </button>
           </div>
         </div>
 
-        {/* Área principal */}
-        <div style={{
-          border:'1px solid #e5e7eb', borderRadius:8, background:'#fff',
-          padding:16, minHeight:340
-        }}>
-          {filt.length === 0 ? (
-            // Empty state
+        <div style={{ border:'1px solid #e5e7eb', borderRadius:8, background:'#fff', padding:16, minHeight:340 }}>
+          {loading ? (
+            <div style={{ height:300, display:'grid', placeItems:'center', color:'#6b7280' }}>Carregando…</div>
+          ) : error ? (
+            <div style={{ height:300, display:'grid', placeItems:'center', color:'#b91c1c' }}>{error}</div>
+          ) : filt.length === 0 ? (
             <div style={{ height:300, display:'grid', placeItems:'center', color:'#6b7280' }}>
               <div style={{ textAlign:'center' }}>
-                <div style={{
-                  width:120, height:120, borderRadius:'50%', background:'#f3f4f6',
-                  margin:'0 auto 12px', display:'grid', placeItems:'center', color:'#9ca3af', fontSize:12
-                }}>
-                  📊
-                </div>
+                <div style={{ width:120, height:120, borderRadius:'50%', background:'#f3f4f6', margin:'0 auto 12px', display:'grid', placeItems:'center', color:'#9ca3af', fontSize:12 }}>📊</div>
                 <div style={{ fontWeight:600 }}>Nada por aqui ainda…</div>
               </div>
             </div>
           ) : (
-            // Tabela
             <div style={{ overflowX:'auto' }}>
               <table style={{ width:'100%', borderCollapse:'separate', borderSpacing:0 }}>
                 <thead>
@@ -252,13 +342,10 @@ export default function AgendamentosPage() {
                         <Badge tone="dark">{r.sala}</Badge>
                       </td>
                       <td style={{ padding:'12px' }}>
-                        <Badge tone={statusTone(r.status)}>{r.status}</Badge>
+                        <Badge tone={apiStatusToBadge(r._rawStatus)}>{r.status}</Badge>
                       </td>
                       <td style={{ padding:'12px' }}>
-                        <button title="Cancelar" style={{
-                          width:28, height:28, borderRadius:'50%', border:'1px solid #e5e7eb',
-                          background:'#fff', cursor:'pointer'
-                        }}>
+                        <button title="Cancelar" onClick={()=>handleCancel(r.id)} style={{ width:28, height:28, borderRadius:'50%', border:'1px solid #e5e7eb', background:'#fff', cursor:'pointer' }}>
                           {Icon.close}
                         </button>
                       </td>
@@ -267,7 +354,6 @@ export default function AgendamentosPage() {
                 </tbody>
               </table>
 
-              {/* Paginação fake (UI) */}
               <div style={{ display:'flex', gap:8, justifyContent:'center', padding:12 }}>
                 {Array.from({ length:4 }).map((_,i)=> <span key={i}>{Icon.dot(i===1)}</span>)}
               </div>
@@ -276,7 +362,7 @@ export default function AgendamentosPage() {
         </div>
       </section>
 
-      <ModalNovo open={open} onClose={()=>setOpen(false)} />
+      <ModalNovo open={open} onClose={()=>setOpen(false)} onCreated={fetchBookings} />
     </>
   );
 }
