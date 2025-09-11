@@ -3,13 +3,13 @@ const bcrypt = require("bcrypt");
 
 module.exports = {
   async up(queryInterface) {
-    const passwordHash = await bcrypt.hash("admin123", 10);
+    const password_hash = await bcrypt.hash("admin123", 10);
 
     await queryInterface.bulkInsert("users", [
       {
         name: "Admin",
         email: "admin@teste.com",
-        passwordHash,
+        password_hash,
         role: "ADMIN",
         postal_code: "01001000",
         street: "Praça da Sé",
@@ -20,8 +20,8 @@ module.exports = {
         state: "SP",
         region: "Sudeste",
 
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        created_at: new Date(),
+        updated_at: new Date(),
       },
     ]);
   },
