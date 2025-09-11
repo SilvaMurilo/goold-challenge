@@ -75,48 +75,12 @@ export default function LogsPage() {
   const slice = filtered.slice((page-1)*pageSize, page*pageSize);
 
   return (
-    <div style={{ minHeight:'100dvh', background:'#f5f3f0', display:'grid', gridTemplateColumns:'260px 1fr' }}>
-      {/* sidebar */}
-      <aside style={{ background:'#eee9e2', borderRight:'1px solid #e5e7eb', display:'grid', gridTemplateRows:'auto 1fr auto' }}>
-        <div style={{ padding:'16px 20px', borderBottom:'1px solid #e5e7eb', display:'flex', alignItems:'center', gap:10 }}>
-          {Icon.logo}
-        </div>
-        <nav style={{ padding:'16px 12px', display:'grid', gap:6 }}>
-          <a style={{
-            display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10,
-            color:'#111827', textDecoration:'none', fontSize:14
-          }}>
-            <span style={{ width:18, height:18, borderRadius:4, border:'1px solid #111827' }} />
-            Agendamentos
-          </a>
-          <a style={{
-            display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10,
-            background:'#111827', color:'#fff', textDecoration:'none', fontSize:14, fontWeight:600
-          }}>
-            <span style={{ width:18, height:18, borderRadius:4, border:'1px solid #fff' }} />
-            Logs
-          </a>
-          <a style={{
-            display:'flex', alignItems:'center', gap:10, padding:'10px 12px', borderRadius:10,
-            color:'#111827', textDecoration:'none', fontSize:14
-          }}>
-            <span style={{ width:18, height:18, borderRadius:999, border:'1px solid #111827' }} />
-            Minha Conta
-          </a>
-        </nav>
-        <div style={{ padding:'12px 16px', borderTop:'1px solid #e5e7eb', fontSize:13 }}>
-          <div style={{ fontWeight:600 }}>Camila Mendes</div>
-          <div style={{ color:'#6b7280' }}>Cliente</div>
-        </div>
-      </aside>
-
+    <div style={{ background:'#f5f3f0', display:'grid'}}>
       {/* conteúdo */}
-      <section style={{ padding:'24px' }}>
-        {/* header */}
-        <header style={{ borderBottom:'1px solid #e5e7eb', paddingBottom:16, marginBottom:16 }}>
-          <h1 style={{ margin:'0 0 4px', fontSize:22, fontWeight:800, color:'#111827' }}>Logs</h1>
-          <p style={{ margin:0, fontSize:13, color:'#6b7280' }}>Acompanhe todos as suas Logs</p>
-        </header>
+      <header style={{ borderBottom:'1px solid #e5e7eb', paddingBottom:16, marginBottom:16 }}>
+        <h1 style={{ margin:'0 0 4px', fontSize:22, fontWeight:800, color:'#111827' }}>Logs</h1>
+        <p style={{ margin:0, fontSize:13, color:'#6b7280' }}>Acompanhe todos as suas Logs</p>
+      </header>
 
         {/* filtros */}
         <div style={{
@@ -189,7 +153,7 @@ export default function LogsPage() {
             ))}
           </div>
         </div>
-      </section>
+
     </div>
   );
 }
