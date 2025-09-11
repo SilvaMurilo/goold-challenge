@@ -90,9 +90,9 @@ router.post('/login', async (req, res) => {
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
     path: '/',
-    maxAge: 60 * 60 * 1000, // 1h
+    maxAge: 60 * 60 * 1000,
   });
-  return res.json({ ok: true });
+  return res.json({ ok: true});
 });
 
 router.post('/logout', (req, res) => {

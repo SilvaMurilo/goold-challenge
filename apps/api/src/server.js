@@ -9,8 +9,8 @@ const meRoutes = require('./routes/me');
 const bookings = require('./routes/bookings');
 
 const app = express();
-app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
+app.use(cors({ origin: true, credentials: true }));
 
 
 app.get('/health', (_, res) => res.json({ ok: true }));
