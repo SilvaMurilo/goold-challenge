@@ -345,9 +345,28 @@ export default function AgendamentosPage() {
                         <Badge tone={apiStatusToBadge(r._rawStatus)}>{r.status}</Badge>
                       </td>
                       <td style={{ padding:'12px' }}>
-                        <button title="Cancelar" onClick={()=>handleCancel(r.id)} style={{ width:28, height:28, borderRadius:'50%', border:'1px solid #e5e7eb', background:'#fff', cursor:'pointer' }}>
-                          {Icon.close}
-                        </button>
+                        {(() => {
+                          const canCancel = r._rawStatus === 'PENDING' || r._rawStatus === 'CONFIRMED';
+                          return (
+                            <button
+                              title={canCancel ? 'Cancelar' : 'Ação indisponível'}
+                              onClick={canCancel ? () => handleCancel(r.id) : undefined}
+                              disabled={!canCancel}
+                              aria-disabled={!canCancel}
+                              style={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: '50%',
+                                border: '1px solid #e5e7eb',
+                                background: '#fff',
+                                cursor: canCancel ? 'pointer' : 'not-allowed',
+                                opacity: canCancel ? 1 : 0.5,
+                              }}
+                            >
+                              {Icon.close}
+                            </button>
+                          );
+                        })()}
                       </td>
                     </tr>
                   ))}
