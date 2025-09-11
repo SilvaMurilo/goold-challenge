@@ -6,7 +6,7 @@ const { sequelize } = require('./models');
 
 const authRoutes = require('./routes/auth');
 const meRoutes = require('./routes/me');
-
+const bookings = require('./routes/bookings');
 
 const app = express();
 app.use(cors({ origin: true, credentials: true }));
@@ -16,6 +16,7 @@ app.use(express.json());
 app.get('/health', (_, res) => res.json({ ok: true }));
 app.use('/auth', authRoutes);
 app.use('/me', meRoutes);
+app.use('/bookings', bookings);
 
 
 const port = process.env.PORT || 4000;
