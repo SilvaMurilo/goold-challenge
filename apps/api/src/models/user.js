@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
         unique: true,
         validate: { isEmail: true },
       },
-      passwordHash: {
+      password_hash: {
         type: DataTypes.STRING,
         allowNull: false,
       },
