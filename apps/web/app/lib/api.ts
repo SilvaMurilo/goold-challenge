@@ -17,7 +17,7 @@ export async function api(path: string, init: RequestInit = {}, token?: string) 
   return fetch(url, {
     ...init,
     headers,
-    credentials: 'omit',
+    credentials: 'include',
     cache: 'no-store',
   });
 }

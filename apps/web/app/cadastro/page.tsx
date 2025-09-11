@@ -122,7 +122,6 @@ export default function CadastroPage() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        console.log(data)
         throw new Error(data?.error || 'Falha ao registrar');
       }
 

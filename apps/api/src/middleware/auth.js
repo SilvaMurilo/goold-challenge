@@ -14,7 +14,6 @@ function requireAuth(req, res, next) {
     const fromCookie = req?.cookies?.token || null;
     const fromBearer = extractBearer(req);
     const token = fromCookie || fromBearer;
-    console.log(token)
     if (!token) {
       return res.status(401).json({ error: 'Não autenticado' });
     }
