@@ -39,12 +39,12 @@ router.post('/register', async (req, res) => {
     const exists = await User.findOne({ where: { email: normalizedEmail } });
     if (exists) return res.status(409).json({ error: 'E-mail já cadastrado' });
 
-    const passwordHash = await bcrypt.hash(password, 10);
+    const password_hash = await bcrypt.hash(password, 10);
 
     const user = await User.create({
       name,
       email: normalizedEmail,
-      passwordHash,
+      password_hash,
       role: 'CUSTOMER', // default também está na migration, mas deixei explícito
       postal_code,
       address_number,
@@ -75,22 +75,29 @@ router.post('/register', async (req, res) => {
 
 
 router.post('/login', async (req, res) => {
-try {
-const { email, password } = req.body;
-const user = await User.findOne({ where: { email } });
-if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
+  const { email, password } = req.body || {};
+  const user = await User.findOne({ where: { email: String(email).toLowerCase().trim() } });
+  if (!user) return res.status(401).json({ error: 'Credenciais inválidas' });
 
+  const ok = await bcrypt.compare(password, user.password_hash);
+  if (!ok) return res.status(401).json({ error: 'Credenciais inválidas' });
 
-const ok = await bcrypt.compare(password, user.passwordHash);
-if (!ok) return res.status(401).json({ error: 'Credenciais inválidas' });
+  const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
+  // cookie httpOnly + secure
+  res.cookie('token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 60 * 60 * 1000, // 1h
+  });
+  return res.json({ ok: true });
+});
 
-const token = jwt.sign({ id: user.id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1d' });
-return res.json({ token });
-} catch (e) {
-console.error(e);
-return res.status(500).json({ error: 'Erro ao logar' });
-}
+router.post('/logout', (req, res) => {
+  res.clearCookie('token', { path: '/' });
+  res.json({ ok: true });
 });
 
 
