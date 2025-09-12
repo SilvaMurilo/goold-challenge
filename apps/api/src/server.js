@@ -8,7 +8,8 @@ const cookieParser = require('cookie-parser');
 const authRoutes = require('./routes/auth');
 const users = require('./routes/users');
 const bookings = require('./routes/bookings');
-const roomsRoutes = require('./routes/rooms');
+const rooms = require('./routes/rooms');
+const logs = require('./routes/logs');
 
 const app = express();
 app.use(express.json());
@@ -20,7 +21,8 @@ app.get('/health', (_, res) => res.json({ ok: true }));
 app.use('/auth', authRoutes);
 app.use('/users', users);
 app.use('/bookings', bookings);
-app.use('/rooms', roomsRoutes);
+app.use('/rooms', rooms);
+app.use('/logs', logs);
 
 const port = process.env.PORT || 4000;
 app.listen(port, async () => {
