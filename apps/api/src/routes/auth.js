@@ -2,7 +2,7 @@ const router = require('express').Router();
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { User, Address } = require('../models');
-
+const { logAction } = require('../services/audit');
 
 router.post('/register', async (req, res) => {
   try {
@@ -58,7 +58,13 @@ router.post('/register', async (req, res) => {
       address_line2: address_line2 ?? null,
       region: region ?? null,
     });
-
+    await logAction({
+      action: 'LOGIN',
+      userId: user.id,
+      entity: 'auth',
+      entityId: String(user.id),
+      description: `Usuário ${user.email} autenticou`,
+    });
     // responde sem o hash
     return res.status(201).json({
       id: user.id,
@@ -95,6 +101,14 @@ router.post('/login', async (req, res) => {
     path: '/',
     maxAge: 60 * 60 * 1000,
   });
+  await logAction({
+    action: 'LOGIN',
+    userId: user.id,
+    entity: 'auth',
+    entityId: String(user.id),
+    description: `Usuário ${user.email} autenticou`,
+  });
+
   return res.json({ ok: true, token });
 });
 
