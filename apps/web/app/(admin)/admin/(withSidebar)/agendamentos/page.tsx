@@ -99,7 +99,7 @@ function ModalAjustes({
     if (!open) return;
     (async () => {
       try {
-        const res = await api('/rooms', { method: 'GET' });
+        const res = await api('/rooms?full=1', { method: 'GET' });
         if (!res.ok) throw new Error('Falha ao listar salas');
         const data = await res.json();
         const list = Array.isArray(data) ? data : data?.data || [];
@@ -107,23 +107,28 @@ function ModalAjustes({
         const first = list?.[0];
         setRoomIdx(0);
         setName(first?.name || '');
-        const rh = (h?:string,e?:string)=> (h && e) ? `${h} - ${e}` : '08:00 - 18:00';
+        const rh = (h?:string,e?:string)=> (h && e) ? `${fmtHHMM(h)} - ${fmtHHMM(e)}` : '08:00 - 18:00';
         setRange(rh(first?.start_hour, first?.end_hour));
         setSlot(String(first?.slot_minutes ?? 30));
-      } catch (e) {
-        // silencioso
-      }
+      } catch {/* noop */}
     })();
   }, [open]);
+
+  function fmtHHMM(s?: string) {
+    if (!s) return '';
+    const [h='00', m='00'] = s.split(':'); // aceita '08:00' ou '08:00:00'
+    return `${h.padStart(2,'0')}:${m.padStart(2,'0')}`;
+  }
+  
 
   useEffect(() => {
     const r = rooms[roomIdx];
     if (!r) return;
     setName(r.name || '');
-    const rh = (h?:string,e?:string)=> (h && e) ? `${h} - ${e}` : '08:00 - 18:00';
+    const rh = (h?:string,e?:string)=> (h && e) ? `${fmtHHMM(h)} - ${fmtHHMM(e)}` : '08:00 - 18:00';
     setRange(rh(r.start_hour, r.end_hour));
     setSlot(String(r.slot_minutes ?? 30));
-  }, [roomIdx]); // eslint-disable-line
+  }, [roomIdx, rooms]);
 
   if (!open) return null;
 
@@ -135,29 +140,61 @@ function ModalAjustes({
     try {
       const body = {
         name: name.trim(),
-        start_hour: startH || '08:00',
-        end_hour: endH || '18:00',
+        start_hour: fmtHHMM(startH || '08:00'),
+        end_hour:   fmtHHMM(endH   || '18:00'),
         slot_minutes: Number(slot || '30'),
       };
       const selected = rooms[roomIdx];
-      let res;
+      let res, createdId: number | null = null;
+  
       if (selected?.id) {
-        res = await api(`/rooms/${selected.id}`, { method: 'PATCH', body: JSON.stringify(body) });
+        // EDITAR
+        res = await api(`/rooms/${selected.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
       } else {
-        res = await api(`/rooms`, { method: 'POST', body: JSON.stringify(body) });
+        // CRIAR
+        res = await api(`/rooms`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
       }
+  
       if (!res.ok) {
         const err = await res.json().catch(()=>({}));
         throw new Error(err?.error || 'Falha ao salvar');
       }
-      onClose();
+  
+      // se criou, pegar id para selecionar depois
+      if (!selected?.id) {
+        const j = await res.json().catch(()=>({}));
+        createdId = j?.data?.id ?? null;
+      }
+  
+      // Refresh e manter seleção
+      const listRes = await api('/rooms?full=1', { method: 'GET' });
+      const list = await listRes.json();
+      const arr = Array.isArray(list) ? list : list?.data || [];
+      setRooms(arr);
+  
+      // definir seleção: se criou agora, aponta para o índice da nova
+      if (createdId) {
+        const newIdx = arr.findIndex((r:any)=> r.id === createdId);
+        setRoomIdx(newIdx >= 0 ? newIdx : 0);
+      }
+  
       onSaved();
+      onClose();
     } catch (e:any) {
       alert(e?.message || 'Erro ao salvar');
     } finally {
       setSaving(false);
     }
   }
+  
 
   return (
     <div style={{ position:'fixed', inset:0, background:'rgba(17,24,39,0.5)', display:'grid', placeItems:'center', zIndex:50 }}>
@@ -168,7 +205,6 @@ function ModalAjustes({
         </div>
 
         <div style={{ display:'grid', gap:10 }}>
-          {/* selecionar sala existente */}
           {rooms.length > 0 && (
             <label style={{ display:'grid', gap:6 }}>
               <span style={{ fontSize:12, color:'#374151' }}>Selecione a sala</span>
@@ -179,21 +215,18 @@ function ModalAjustes({
             </label>
           )}
 
-          {/* nome da sala */}
           <label style={{ display:'grid', gap:6 }}>
             <span style={{ fontSize:12, color:'#374151' }}>Nome da sala</span>
             <input value={name} onChange={e=>setName(e.target.value)} placeholder="Sala 012"
               style={{ width:'100%', padding:'10px 12px', border:'1px solid #d1d5db', borderRadius:8 }}/>
           </label>
 
-          {/* janela de funcionamento */}
           <label style={{ display:'grid', gap:6 }}>
             <span style={{ fontSize:12, color:'#374151' }}>Horário Inicial & Final da sala</span>
             <input value={range} onChange={e=>setRange(e.target.value)} placeholder="08:00 - 18:00"
               style={{ width:'100%', padding:'10px 12px', border:'1px solid #d1d5db', borderRadius:8 }}/>
           </label>
 
-          {/* slot */}
           <label style={{ display:'grid', gap:6 }}>
             <span style={{ fontSize:12, color:'#374151' }}>Bloco de horários de agendamento</span>
             <select value={slot} onChange={e=>setSlot(e.target.value)}
@@ -202,7 +235,6 @@ function ModalAjustes({
             </select>
           </label>
 
-          {/* adicionar nova sala */}
           <button type="button" onClick={()=>{
             setRooms(prev=>[{id:0,name:'Nova sala'}, ...prev]);
             setRoomIdx(0);
@@ -230,7 +262,7 @@ function ModalAjustes({
 export default function AdminAgendamentosPage() {
   const [openConfig, setOpenConfig] = useState(false);
 
-  const [q, setQ] = useState('');
+  const [q, setQ] = useState(''); // por enquanto não é usado pela API
   const [room, setRoom] = useState('');
   const [rooms, setRooms] = useState<{id:number; name:string}[]>([]);
   const [date, setDate] = useState('');
@@ -247,24 +279,30 @@ export default function AdminAgendamentosPage() {
       if (!res.ok) return;
       const data = await res.json();
       setRooms(Array.isArray(data) ? data : data?.data || []);
-    } catch {}
+    } catch {/* noop */}
   }
 
   async function fetchAllBookings() {
     try {
       setLoading(true);
       setError(null);
+
       const params = new URLSearchParams();
-      if (q) params.set('q', q);
-      // (room e date são filtrados client-side para simplificar;
-      //  se preferir, envie room_id & date_from/date_to para a API)
+      // se quiser que o servidor já filtre:
+      if (room) params.set('roomId', String(room));
+      if (date) {
+        params.set('from', `${date}T00:00:00`);
+        params.set('to',   `${date}T23:59:59`);
+      }
+      // ordem por padrão DESC já é atendida no backend
+
       const res = await api(`/bookings?${params.toString()}`);
       if (!res.ok) {
         let msg = `Falha ao listar agendamentos (HTTP ${res.status})`;
         try {
           const data = await res.json();
           if (data?.error) msg = data.error + ` (HTTP ${res.status})`;
-        } catch {}
+        } catch {/* noop */}
         throw new Error(msg);
       }
       const data = await res.json();
@@ -277,7 +315,7 @@ export default function AdminAgendamentosPage() {
         nome: b.user?.name || b.user?.email || 'Cliente',
         subt: 'Cliente',
         sala: b.room?.name || `Sala ${b.room_id}`,
-        roomId: b.room_id,
+        roomId: b.room?.id ?? b.room_id,
         status: b.status === 'PENDING' ? 'Em análise'
               : b.status === 'CONFIRMED' ? 'Agendado'
               : b.status === 'REJECTED'  ? 'Recusado'
@@ -296,14 +334,15 @@ export default function AdminAgendamentosPage() {
   }
 
   useEffect(() => { fetchRooms(); }, []);
-  useEffect(() => { fetchAllBookings(); /* eslint-disable-next-line */ }, [q]);
+  useEffect(() => { fetchAllBookings(); /* eslint-disable-next-line */ }, [room, date]);
 
   const filtered = useMemo(() => {
-    const base = rowsAPI;
-    return base
-      .filter((r) => (!room || r.roomId === Number(room)))
-      .filter((r) => (!date || r.at.startsWith(date.split('-').reverse().join('/'))));
-  }, [rowsAPI, room, date]);
+    // Se quisermos ainda filtrar por nome no client:
+    const term = q.trim().toLowerCase();
+    return rowsAPI.filter(r =>
+      !term || `${r.nome}`.toLowerCase().includes(term)
+    );
+  }, [rowsAPI, q]);
 
   const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
   const list = filtered.slice((page-1)*pageSize, page*pageSize);
@@ -315,12 +354,12 @@ export default function AdminAgendamentosPage() {
       : 'PENDING'
   );
 
-
   async function handleConfirm(id: number) {
     if (!confirm('Deseja confirmar este agendamento?')) return;
     try {
       const res = await api(`/bookings/${id}/status`, {
         method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'CONFIRMED' }),
       });
       if (!res.ok) {
@@ -331,7 +370,7 @@ export default function AdminAgendamentosPage() {
     } catch (e:any) {
       alert(e.message || 'Erro ao confirmar');
     }
-}
+  }
 
   async function handleCancel(id: number) {
     if (!confirm('Deseja cancelar este agendamento?')) return;
@@ -360,7 +399,8 @@ export default function AdminAgendamentosPage() {
           <div style={{ position:'relative' }}>
             <input
               placeholder="Filtre por nome"
-              value={q} onChange={e=>{ setPage(1); setQ(e.target.value); }}
+              value={q}
+              onChange={e=>{ setPage(1); setQ(e.target.value); }}
               style={{ width:'100%', padding:'10px 36px 10px 12px', border:'1px solid #e5e7eb', borderRadius:8, background:'#fff' }}
             />
             <div style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)' }}>{Icon.search}</div>
@@ -429,58 +469,54 @@ export default function AdminAgendamentosPage() {
                         <Badge tone={apiStatusToBadge(r._rawStatus)}>{r.status}</Badge>
                       </td>
                       <td style={{ padding:'12px' }}>
-  {(() => {
-    const canCancel  = r._rawStatus === 'PENDING' || r._rawStatus === 'CONFIRMED';
-    const canConfirm = r._rawStatus === 'PENDING';
+                        {(() => {
+                          const canCancel  = r._rawStatus === 'PENDING' || r._rawStatus === 'CONFIRMED';
+                          const canConfirm = r._rawStatus === 'PENDING';
 
-    const btnStyle: React.CSSProperties = {
-      width: 28,
-      height: 28,
-      borderRadius: '50%',
-      border: '1px solid #e5e7eb',
-      background: '#fff',
-      cursor: 'pointer',
-    };
-    const btnDisStyle: React.CSSProperties = {
-      ...btnStyle,
-      cursor: 'not-allowed',
-      opacity: 0.5,
-    };
+                          const btnStyle: React.CSSProperties = {
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            border: '1px solid #e5e7eb',
+                            background: '#fff',
+                            cursor: 'pointer',
+                          };
+                          const btnDisStyle: React.CSSProperties = {
+                            ...btnStyle,
+                            cursor: 'not-allowed',
+                            opacity: 0.5,
+                          };
 
-    return (
-      <div style={{ display:'flex', gap:8 }}>
-        {/* Confirmar */}
-        <button
-          title={canConfirm ? 'Confirmar' : 'Ação indisponível'}
-          onClick={canConfirm ? () => handleConfirm(r.id) : undefined}
-          disabled={!canConfirm}
-          aria-disabled={!canConfirm}
-          style={canConfirm ? btnStyle : btnDisStyle}
-        >
-          {Icon.check}
-        </button>
+                          return (
+                            <div style={{ display:'flex', gap:8 }}>
+                              <button
+                                title={canConfirm ? 'Confirmar' : 'Ação indisponível'}
+                                onClick={canConfirm ? () => handleConfirm(r.id) : undefined}
+                                disabled={!canConfirm}
+                                aria-disabled={!canConfirm}
+                                style={canConfirm ? btnStyle : btnDisStyle}
+                              >
+                                {Icon.check}
+                              </button>
 
-        {/* Cancelar */}
-        <button
-          title={canCancel ? 'Cancelar' : 'Ação indisponível'}
-          onClick={canCancel ? () => handleCancel(r.id) : undefined}
-          disabled={!canCancel}
-          aria-disabled={!canCancel}
-          style={canCancel ? btnStyle : btnDisStyle}
-        >
-          {Icon.close}
-        </button>
-      </div>
-    );
-  })()}
-</td>
-
+                              <button
+                                title={canCancel ? 'Cancelar' : 'Ação indisponível'}
+                                onClick={canCancel ? () => handleCancel(r.id) : undefined}
+                                disabled={!canCancel}
+                                aria-disabled={!canCancel}
+                                style={canCancel ? btnStyle : btnDisStyle}
+                              >
+                                {Icon.close}
+                              </button>
+                            </div>
+                          );
+                        })()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
 
-              {/* paginação */}
               <div style={{ display:'flex', gap:8, justifyContent:'center', padding:12 }}>
                 {Array.from({ length: pages }).map((_,i)=> (
                   <button key={i} onClick={()=>setPage(i+1)} aria-label={`Página ${i+1}`}
