@@ -17,6 +17,19 @@ function toPublicUser(u) {
 // LIKE compat (pg usa iLike, mysql/sqlite usa like)
 const LIKE = Op.iLike || Op.like;
 
+router.get('/me', requireAuth, async (req, res) => {
+  try {
+    const me = await User.findByPk(req.user.id, {
+      attributes: { exclude: ['password_hash'] },
+    });
+    if (!me) return res.status(404).json({ error: 'Usuário não encontrado' });
+    return res.json(toPublicUser(me));
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Erro ao obter usuário autenticado' });
+  }
+});
+
 /**
  * GET /users
  * - CUSTOMER: retorna o próprio usuário (objeto direto — sem {data})
@@ -76,7 +89,7 @@ router.get('/:id', requireAuth, async (req, res) => {
   try {
     const { role } = req.user;
     if (role !== 'ADMIN') return res.status(403).json({ error: 'Sem permissão' });
-
+    
     const id = Number(req.params.id);
     const user = await User.findByPk(id, { attributes: { exclude: ['password_hash'] } });
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
@@ -154,5 +167,6 @@ router.patch('/', requireAuth, async (req, res) => {
     return res.status(500).json({ error: 'Erro ao atualizar usuário' });
   }
 });
+
 
 module.exports = router;

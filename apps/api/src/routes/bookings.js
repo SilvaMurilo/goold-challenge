@@ -145,4 +145,81 @@ router.delete('/:id', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * PATCH /bookings/:id/status
+ * body: { status: 'PENDING' | 'CONFIRMED' | 'REJECTED' | 'CANCELLED' }
+ * - ADMIN: pode confirmar/rejeitar/cancelar conforme transições definidas
+ * - CUSTOMER: só pode CANCELAR o próprio (de PENDING ou CONFIRMED para CANCELLED)
+ */
+router.patch('/:id/status', requireAuth, async (req, res) => {
+  try {
+    const { role, id: authUserId } = req.user;
+    const id = Number(req.params.id);
+    const next = String(req.body?.status || '').toUpperCase();
+
+    if (!ALLOWED_STATUS.includes(next)) {
+      return res.status(400).json({ error: 'Status inválido' });
+    }
+
+    const booking = await Booking.findByPk(id);
+    if (!booking) return res.status(404).json({ error: 'Agendamento não encontrado' });
+
+    // Regras de permissão por role
+    const TRANSITIONS = {
+      ADMIN: {
+        PENDING:    ['CONFIRMED', 'REJECTED', 'CANCELLED'],
+        CONFIRMED:  ['CANCELLED'],
+        REJECTED:   [],
+        CANCELLED:  [],
+      },
+      CUSTOMER: {
+        PENDING:    ['CANCELLED'],
+        CONFIRMED:  ['CANCELLED'],
+        REJECTED:   [],
+        CANCELLED:  [],
+      },
+    };
+
+    // CUSTOMER só pode mexer no próprio agendamento
+    if (role !== 'ADMIN' && booking.user_id !== authUserId) {
+      return res.status(403).json({ error: 'Sem permissão' });
+    }
+
+    const current = booking.status;
+    const allowedNext = TRANSITIONS[role]?.[current] || [];
+    if (!allowedNext.includes(next)) {
+      return res.status(409).json({
+        error: `Transição inválida para ${role}: ${current} -> ${next}`,
+      });
+    }
+
+    // Se for CONFIRMAR, checar conflito de horário para a mesma sala
+    if (next === 'CONFIRMED') {
+      const overlap = await Booking.findOne({
+        where: {
+          id: { [Op.ne]: booking.id },
+          room_id: booking.room_id,
+          [Op.and]: [
+            { start_at: { [Op.lt]: booking.end_at } },
+            { end_at:   { [Op.gt]: booking.start_at } },
+          ],
+          status: { [Op.in]: ['PENDING', 'CONFIRMED'] },
+        },
+      });
+      if (overlap) {
+        return res.status(409).json({ error: 'Conflito de horário para confirmação' });
+      }
+    }
+
+    booking.status = next;
+    await booking.save();
+
+    return res.json({ data: booking });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ error: 'Erro ao atualizar status do agendamento' });
+  }
+});
+
+
 module.exports = router;
