@@ -71,6 +71,11 @@ const Icon = {
       <circle cx="6" cy="6" r="5" fill={active ? '#111827' : '#d1d5db'} />
     </svg>
   ),
+  check: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#111827" strokeWidth="2">
+      <path d="M20 6L9 17l-5-5" />
+    </svg>
+  )
 };
 
 /* ---------- Modal de Ajustes (salas & janelas) ---------- */
@@ -310,6 +315,25 @@ export default function AdminAgendamentosPage() {
       : 'PENDING'
   );
 
+
+  async function handleConfirm(id: number) {
+    if (!confirm('Deseja confirmar este agendamento?')) return;
+    try {
+      const res = await api(`/bookings/${id}/status`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'CONFIRMED' }),
+      });
+      console.log(res)
+      if (!res.ok) {
+        const data = await res.json().catch(()=>({}));
+        throw new Error(data?.error || 'Falha ao confirmar');
+      }
+      await fetchAllBookings();
+    } catch (e:any) {
+      alert(e.message || 'Erro ao confirmar');
+    }
+}
+
   async function handleCancel(id: number) {
     if (!confirm('Deseja cancelar este agendamento?')) return;
     try {
@@ -406,29 +430,52 @@ export default function AdminAgendamentosPage() {
                         <Badge tone={apiStatusToBadge(r._rawStatus)}>{r.status}</Badge>
                       </td>
                       <td style={{ padding:'12px' }}>
-                        {(() => {
-                          const canCancel = r._rawStatus === 'PENDING' || r._rawStatus === 'CONFIRMED';
-                          return (
-                            <button
-                              title={canCancel ? 'Cancelar' : 'Ação indisponível'}
-                              onClick={canCancel ? () => handleCancel(r.id) : undefined}
-                              disabled={!canCancel}
-                              aria-disabled={!canCancel}
-                              style={{
-                                width: 28,
-                                height: 28,
-                                borderRadius: '50%',
-                                border: '1px solid #e5e7eb',
-                                background: '#fff',
-                                cursor: canCancel ? 'pointer' : 'not-allowed',
-                                opacity: canCancel ? 1 : 0.5,
-                              }}
-                            >
-                              {Icon.close}
-                            </button>
-                          );
-                        })()}
-                      </td>
+  {(() => {
+    const canCancel  = r._rawStatus === 'PENDING' || r._rawStatus === 'CONFIRMED';
+    const canConfirm = r._rawStatus === 'PENDING';
+
+    const btnStyle: React.CSSProperties = {
+      width: 28,
+      height: 28,
+      borderRadius: '50%',
+      border: '1px solid #e5e7eb',
+      background: '#fff',
+      cursor: 'pointer',
+    };
+    const btnDisStyle: React.CSSProperties = {
+      ...btnStyle,
+      cursor: 'not-allowed',
+      opacity: 0.5,
+    };
+
+    return (
+      <div style={{ display:'flex', gap:8 }}>
+        {/* Confirmar */}
+        <button
+          title={canConfirm ? 'Confirmar' : 'Ação indisponível'}
+          onClick={canConfirm ? () => handleConfirm(r.id) : undefined}
+          disabled={!canConfirm}
+          aria-disabled={!canConfirm}
+          style={canConfirm ? btnStyle : btnDisStyle}
+        >
+          {Icon.check}
+        </button>
+
+        {/* Cancelar */}
+        <button
+          title={canCancel ? 'Cancelar' : 'Ação indisponível'}
+          onClick={canCancel ? () => handleCancel(r.id) : undefined}
+          disabled={!canCancel}
+          aria-disabled={!canCancel}
+          style={canCancel ? btnStyle : btnDisStyle}
+        >
+          {Icon.close}
+        </button>
+      </div>
+    );
+  })()}
+</td>
+
                     </tr>
                   ))}
                 </tbody>

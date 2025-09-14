@@ -59,11 +59,11 @@ router.post('/register', async (req, res) => {
       region: region ?? null,
     });
     await logAction({
-      action: 'LOGIN',
+      action: 'CADASTRO',
       userId: user.id,
       entity: 'auth',
       entityId: String(user.id),
-      description: `Usuário ${user.email} autenticou`,
+      description: `Usuário ${user.email} cadastrou`,
     });
     // responde sem o hash
     return res.status(201).json({
@@ -109,7 +109,7 @@ router.post('/login', async (req, res) => {
     description: `Usuário ${user.email} autenticou`,
   });
 
-  return res.json({ ok: true, token });
+  return res.json({ ok: true, token, role: user.role });
 });
 
 router.post('/logout', (req, res) => {
