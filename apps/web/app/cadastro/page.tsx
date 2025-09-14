@@ -1,6 +1,6 @@
 'use client';
 import { useRouter, useSearchParams } from 'next/navigation';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { Suspense, useEffect, useMemo, useState } from 'react';
 import 'typeface-montserrat';
 
 
@@ -49,7 +49,7 @@ function Header() {
   );
 }
 
-export default function CadastroPage() {
+function CadastroPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('redirect') || '/';
@@ -504,5 +504,14 @@ export default function CadastroPage() {
         </div>
       </div>
     </main>
+  );
+}
+
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Carregando…</div>}>
+      <CadastroPageInner />
+    </Suspense>
   );
 }

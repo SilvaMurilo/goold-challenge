@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
 
@@ -35,7 +35,7 @@ function Header() {
   );
 }
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('redirect') || '/admin/agendamentos';
@@ -288,5 +288,13 @@ router.replace(redirectTo);
         </div>
       </div>
     </main>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div style={{ padding: 24 }}>Carregando…</div>}>
+      <LoginPageInner />
+    </Suspense>
   );
 }
