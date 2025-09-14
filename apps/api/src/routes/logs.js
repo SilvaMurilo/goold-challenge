@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
     }
 
     const include = includeUser === '1'
-      ? [{ model: User, as: 'user', attributes: ['id', 'name', 'email'] }]
+      ? [{ model: User, as: 'user', attributes: ['id', 'name', 'last_name', 'email'] }]
       : [];
 
     const { rows, count } = await Log.findAndCountAll({
@@ -85,7 +85,7 @@ router.get('/:id', async (req, res) => {
     if (!Number.isFinite(id)) return res.status(400).json({ error: 'id inválido' });
 
     const row = await Log.findByPk(id, {
-      include: [{ model: User, as: 'user', attributes: ['id', 'name', 'email'] }],
+      include: [{ model: User, as: 'user', attributes: ['id', 'name', 'last_name', 'email'] }],
     });
     if (!row) return res.status(404).json({ error: 'Não encontrado' });
 

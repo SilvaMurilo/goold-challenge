@@ -1,10 +1,10 @@
-// routes/users.js
 'use strict';
 const router = require('express').Router();
 const bcrypt = require('bcrypt');
 const { requireAuth } = require('../middleware/auth');
 const { Op } = require('sequelize');
 const { User } = require('../models');
+const { logAction } = require('../services/audit');
 
 // helper para esconder hash
 function toPublicUser(u) {
@@ -69,7 +69,6 @@ router.get('/', requireAuth, async (req, res) => {
       offset,
       distinct: true,
     });
-
     return res.json({
       page: pageNum,
       pageSize: limit,
@@ -93,7 +92,6 @@ router.get('/:id', requireAuth, async (req, res) => {
     const id = Number(req.params.id);
     const user = await User.findByPk(id, { attributes: { exclude: ['password_hash'] } });
     if (!user) return res.status(404).json({ error: 'Usuário não encontrado' });
-
     return res.json({ data: user });
   } catch (e) {
     console.error(e);
@@ -161,6 +159,13 @@ router.patch('/', requireAuth, async (req, res) => {
     }
 
     await user.save();
+    await logAction({
+      action: 'UPDATE',
+      userId: req.user.id,
+      entity: 'user',
+      entityId: String(targetUserId),
+      description: `Atualizou perfil do usuário #${targetUserId}}`,
+    });
     return res.json({ data: toPublicUser(user) });
   } catch (e) {
     console.error(e);

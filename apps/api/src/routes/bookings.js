@@ -3,6 +3,7 @@ const router = require('express').Router();
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { Op } = require('sequelize');
 const { Booking, Room, User } = require('../models');
+const { logAction } = require('../services/audit');
 
 function parseDate(s) {
   if (!s) return null;
@@ -61,7 +62,6 @@ router.get('/', requireAuth, async (req, res) => {
       offset,
       distinct: true,
     });
-
     return res.json({
       page: pageNum,
       pageSize: limit,
@@ -112,6 +112,13 @@ router.post('/', requireAuth, async (req, res) => {
       status: 'PENDING',
     });
 
+    logAction({
+      action: 'CREATE',
+      userId: authUserId,
+      entity: 'booking',
+      entityId: String(booking.id),
+      description: `Criou agendamento #${booking.id} (sala ${booking.room_id}})`,
+    });
     return res.status(201).json({ data: booking });
   } catch (e) {
     console.error(e);
@@ -137,6 +144,14 @@ router.delete('/:id', requireAuth, async (req, res) => {
 
     booking.status = 'CANCELLED';
     await booking.save();
+
+    logAction({
+      action: 'UPDATE',
+      userId: authUserId,
+      entity: 'booking',
+      entityId: String(booking.id),
+      description: `Cancelou agendamento #${booking.id}})`,
+    });
 
     return res.json({ ok: true });
   } catch (e) {
@@ -213,6 +228,13 @@ router.patch('/:id/status', requireAuth, async (req, res) => {
 
     booking.status = next;
     await booking.save();
+    logAction({
+      action: 'UPDATE',
+      userId: authUserId,
+      entity: 'booking',
+      entityId: String(booking.id),
+      description: `Alterou status do agendamento #${booking.id}})`,
+    });
 
     return res.json({ data: booking });
   } catch (e) {

@@ -3,7 +3,7 @@
 const router = require('express').Router();
 const { requireAuth, requireRole } = require('../middleware/auth');
 const { Room } = require('../models');
-
+const { logAction } = require('../services/audit');
 /**
  * GET /rooms
  * Lista salas. Por padrão devolve {id,name}, mas você pode
@@ -45,6 +45,13 @@ router.post('/', requireAuth, requireRole('ADMIN'), async (req, res) => {
       end_hour: String(end_hour).slice(0,5),
       slot_minutes: slot,
     });
+    await logAction({
+      action: 'CREATE',
+      userId: req.user.id,
+      entity: 'room',
+      entityId: String(room.id),
+      description: `Criou sala "${room.name}"}`,
+    });
 
     return res.status(201).json({ data: room });
   } catch (e) {
@@ -85,6 +92,13 @@ router.patch('/:id', requireAuth, requireRole('ADMIN'), async (req, res) => {
     }
 
     await room.update(payload);
+    await logAction({
+      action: 'UPDATE',
+      userId: req.user.id,
+      entity: 'room',
+      entityId: String(room.id),
+      description: `Atualizou sala "${after.name}"}`,
+    });
     return res.json({ data: room });
   } catch (e) {
     console.error(e);

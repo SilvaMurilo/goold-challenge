@@ -14,13 +14,14 @@ const { Log } = require('../models');
  */
 async function logAction({ action, userId = null, entity = null, entityId = null, description = null }, tx) {
   try {
-    await Log.create({
+    const result = await Log.create({
       action,
       user_id: userId ?? null,
       entity: entity ?? null,
       entity_id: entityId ?? null,
       description: description ?? null,
     }, { transaction: tx });
+    console.log(result)
   } catch (err) {
     // não impedir o fluxo de negócio por falha de logging
     console.warn('[audit] falha ao gravar log:', err?.message);
