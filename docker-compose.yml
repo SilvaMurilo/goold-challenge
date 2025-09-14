@@ -1,0 +1,21 @@
+services:
+  db:
+    image: mysql:8.0
+    command: --default-authentication-plugin=mysql_native_password
+    ports:
+      - "3306:3306"                   # expõe na máquina host (opcional em dev)
+    environment:
+      MYSQL_DATABASE: desafio
+      MYSQL_USER: desafio
+      MYSQL_PASSWORD: desafio
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - mysql_data:/var/lib/mysql     # persistência entre restarts
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h 127.0.0.1 -udesafio -pdesafio --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  mysql_data:
