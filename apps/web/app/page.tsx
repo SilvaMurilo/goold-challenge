@@ -95,10 +95,10 @@ export default function LoginPage() {
       // Se o backend retorna { token }, salva localmente.
       // (Se você setar cookie httpOnly no backend, esse passo vira opcional.)
       const data = await res.json().catch(() => ({}));
-      if (data?.token) {
+      if (data?.token && data?.role === 'CUSTOMER') {
         localStorage.setItem('auth_token', data.token);
       }
-
+      else throw new Error(data?.error || 'Credenciais inválidas');
       setSuccess(true);
 
       // router.replace(next); // ou router.push(next)
