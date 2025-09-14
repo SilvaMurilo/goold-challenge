@@ -1,7 +1,10 @@
 // apps/web/app/(app)/sidebar.tsx
 'use client';
+
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect, useRef, useState } from 'react';
+import { api } from '../lib/api';
 
 const UI = {
   bg: '#eee9e2',
@@ -15,8 +18,36 @@ const UI = {
 
 export default function Sidebar({ initialUser }: { initialUser?: any }) {
   const pathname = usePathname();
+  const router = useRouter();
   const isActive = (href: string) =>
     pathname === href || pathname?.startsWith(href + '/');
+
+  // menu do usuário
+  const [openUserMenu, setOpenUserMenu] = useState(false);
+  const userBtnRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    function onDocClick(e: MouseEvent) {
+      if (!openUserMenu) return;
+      const t = e.target as Node;
+      if (menuRef.current?.contains(t)) return;
+      if (userBtnRef.current?.contains(t)) return;
+      setOpenUserMenu(false);
+    }
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [openUserMenu]);
+
+  async function handleLogout() {
+    try {
+      // notifica o backend para limpar o cookie httpOnly
+      await api('/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
+    } finally {
+      // redireciona para login (cookie já foi limpo pelo backend)
+      if (typeof window !== 'undefined') window.location.assign('/');
+    }
+  }
 
   return (
     <aside
@@ -27,6 +58,7 @@ export default function Sidebar({ initialUser }: { initialUser?: any }) {
         display: 'grid',
         gridTemplateRows: 'auto 1fr auto',
         minHeight: '100dvh',
+        position: 'relative',
       }}
     >
       {/* Header */}
@@ -67,7 +99,6 @@ export default function Sidebar({ initialUser }: { initialUser?: any }) {
           display: 'flex',
           flexDirection: 'column',
           gap: 6,
-          // garante que as linhas não estiquem
           alignItems: 'stretch',
         }}
       >
@@ -87,32 +118,64 @@ export default function Sidebar({ initialUser }: { initialUser?: any }) {
         <NavItem href="/perfil" active={isActive('/perfil')} label="Minha Conta" round />
       </nav>
 
-      {/* User */}
-      <button
-        type="button"
-        title="Conta"
-        style={{
-          textAlign: 'left',
-          padding: '12px 14px',
-          borderTop: `1px solid ${UI.border}`,
-          background: 'transparent',
-          display: 'grid',
-          gridTemplateColumns: '1fr auto',
-          alignItems: 'center',
-          gap: 8,
-          cursor: 'pointer',
-        }}
-      >
-        <div>
-          <div style={{ fontWeight: 600, color: UI.text }}>
-            {initialUser?.name ?? '—'}
+      {/* User / Menu */}
+      <div style={{ position: 'relative' }}>
+        <button
+          ref={userBtnRef}
+          type="button"
+          title="Conta"
+          onClick={() => setOpenUserMenu(v => !v)}
+          style={{
+            width: '100%',
+            textAlign: 'left',
+            padding: '12px 14px',
+            borderTop: `1px solid ${UI.border}`,
+            background: 'transparent',
+            display: 'grid',
+            gridTemplateColumns: '1fr auto',
+            alignItems: 'center',
+            gap: 8,
+            cursor: 'pointer',
+          }}
+        >
+          <div>
+            <div style={{ fontWeight: 600, color: UI.text }}>
+              {initialUser?.name || initialUser?.last_name ? `${initialUser?.name ?? ''} ${initialUser?.last_name ?? ''}` : '—'}
+            </div>
+            <div style={{ color: UI.textMut, fontSize: 12 }}>
+              {initialUser?.role  === 'CUSTOMER' ? 'Cliente' : 'ADMIN'}
+            </div>
           </div>
-          <div style={{ color: UI.textMut, fontSize: 12 }}>
-            {initialUser?.role ?? 'Cliente'}
+          <Chevron />
+        </button>
+
+        {openUserMenu && (
+          <div
+            ref={menuRef}
+            role="menu"
+            style={{
+              position: 'absolute',
+              left: 10,
+              right: 10,
+              bottom: 56,
+              background: '#fff',
+              border: `1px solid ${UI.border}`,
+              borderRadius: 10,
+              boxShadow: '0 10px 30px rgba(0,0,0,.12)',
+              overflow: 'hidden',
+              zIndex: 10,
+            }}
+          >
+            <MenuItem onClick={() => { setOpenUserMenu(false); router.push('/perfil'); }}>
+              Minha Conta
+            </MenuItem>
+            <div style={{ height: 1, background: UI.border, opacity: .6 }} />
+            <MenuItem danger onClick={handleLogout}>
+              Sair
+            </MenuItem>
           </div>
-        </div>
-        <Chevron />
-      </button>
+        )}
+      </div>
     </aside>
   );
 }
@@ -132,15 +195,12 @@ function NavItem({
   square?: boolean;
   round?: boolean;
 }) {
-  // altura fixa evita “cards gigantes” causados por CSS global
   const itemHeight = 42;
-
   return (
     <Link
       href={href}
       aria-current={active ? 'page' : undefined}
       style={{
-        // HARD RESET contra CSS global
         display: 'flex',
         height: itemHeight,
         minHeight: itemHeight,
@@ -174,6 +234,30 @@ function NavItem({
       <Bullet square={square} round={round} active={!!active} />
       <span style={{ fontSize: 14 }}>{label}</span>
     </Link>
+  );
+}
+
+function MenuItem({ children, onClick, danger }: { children: any; onClick?: () => void; danger?: boolean }) {
+  return (
+    <button
+      type="button"
+      role="menuitem"
+      onClick={onClick}
+      style={{
+        width: '100%',
+        textAlign: 'left',
+        padding: '10px 12px',
+        background: 'transparent',
+        border: 'none',
+        cursor: 'pointer',
+        color: danger ? '#b91c1c' : UI.text,
+        fontWeight: 600,
+      }}
+      onMouseEnter={(e) => (e.currentTarget.style.background = 'rgba(0,0,0,.04)')}
+      onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
+    >
+      {children}
+    </button>
   );
 }
 
