@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { api } from '../../../lib/api';
+import { api } from '../../../../lib/api';
 
 const Icon = {
   eye: (

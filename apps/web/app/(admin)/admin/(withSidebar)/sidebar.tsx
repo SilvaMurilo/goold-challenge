@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import { api } from '../../lib/api';
+import { api } from '../../../lib/api';
 
 const UI = {
   bg: '#eee9e2',
