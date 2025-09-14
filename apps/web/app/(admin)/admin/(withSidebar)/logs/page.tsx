@@ -73,7 +73,7 @@ type LogRow = {
   entity_id: string | null;
   description: string | null;
   created_at: string;
-  user?: { id:number; name:string; email:string };
+  user?: { id:number; name:string; last_name:string; email:string };
 };
 type ApiResp = {
   data: LogRow[];
@@ -228,7 +228,7 @@ export default function AdminLogsPage() {
         ) : (
           <div>
             {filtered.map((r, idx) => {
-              const cliente = r.user?.name || r.user?.email || 'Cliente';
+              const cliente = (r.user?.name + ' ' + r.user?.last_name) || 'Cliente';
               return (
                 <div key={r.id} style={{
                   display:'grid', gridTemplateColumns:'240px 1fr 220px 220px', gap:12,

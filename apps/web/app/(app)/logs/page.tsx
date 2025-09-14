@@ -214,7 +214,7 @@ export default function LogsPage() {
                 display:'grid', gridTemplateColumns:'1fr 220px 220px', gap:12,
                 alignItems:'center', padding:'12px', borderBottom:'1px solid #f3f4f6'
               }}>
-                <div><Tag>{actionLabel[r.action] || r.action}</Tag></div>
+                <div><Tag>{actionLabel[r.description] || r.description}</Tag></div>
                 <div><Tag>{entityLabel(r.entity)}</Tag></div>
                 <div><Tag>{ptBRdatetime(r.created_at)}</Tag></div>
               </div>
