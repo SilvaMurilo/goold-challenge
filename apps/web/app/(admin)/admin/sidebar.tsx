@@ -102,8 +102,9 @@ export default function Sidebar({ initialUser }: { initialUser?: any }) {
           alignItems: 'stretch',
         }}
       >
-        <NavItem href="/admin/agendamentos" active={isActive('/agendamentos')} label="Agendamentos" square />
-        <NavItem href="/admin/logs" active={isActive('/logs')} label="Logs" square />
+        <NavItem href="/admin/agendamentos" active={isActive('/admin/agendamentos')} label="Agendamentos" square />
+        <NavItem href="/admin/clientes" active={isActive('/admin/clientes')} label="Clientes" square />
+        <NavItem href="/admin/logs" active={isActive('/admin/logs')} label="Logs" square />
 
         <div
           aria-hidden
