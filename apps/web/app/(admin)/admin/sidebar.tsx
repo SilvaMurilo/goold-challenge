@@ -41,13 +41,11 @@ export default function Sidebar({ initialUser }: { initialUser?: any }) {
 
   async function handleLogout() {
     try {
-      // notifica o backend para limpar o cookie httpOnly
       await api('/auth/logout', { method: 'POST', credentials: 'include' }).catch(() => {});
     } finally {
-      // redireciona para login (cookie já foi limpo pelo backend)
-      if (typeof window !== 'undefined') window.location.assign('/');
+      if (typeof window !== 'undefined') window.location.assign('/admin');
     }
-  }
+  } 
 
   return (
     <aside
