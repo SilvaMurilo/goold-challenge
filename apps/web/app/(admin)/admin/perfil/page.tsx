@@ -92,12 +92,10 @@ export default function PerfilPage() {
         setLoading(true);
         setError(null);
         const res = await api('/users/me', { method: 'GET' });
-        console.log(res)
         if (!res.ok) {
           let msg = `Falha ao carregar perfil (HTTP ${res.status})`;
           try {
             const d = await res.json();
-            console.log(d)
             if (d?.error) msg = d.error + ` (HTTP ${res.status})`;
           } catch {}
           throw new Error(msg);

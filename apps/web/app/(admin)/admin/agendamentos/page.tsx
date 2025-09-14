@@ -323,7 +323,6 @@ export default function AdminAgendamentosPage() {
         method: 'PATCH',
         body: JSON.stringify({ status: 'CONFIRMED' }),
       });
-      console.log(res)
       if (!res.ok) {
         const data = await res.json().catch(()=>({}));
         throw new Error(data?.error || 'Falha ao confirmar');
